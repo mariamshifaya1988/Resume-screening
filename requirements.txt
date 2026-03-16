@@ -1,10 +1,6 @@
 
-scikit-learn
 streamlit
-nltk
-numpy
 pandas
-matplotlib
-seaborn
-re
+scikit-learn
+nltk
 
