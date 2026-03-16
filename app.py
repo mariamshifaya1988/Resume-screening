@@ -14,8 +14,8 @@ stop_words = set(stopwords.words("english"))
 # Load Model
 # ==========================
 
-model = pickle.load(open("/content/drive/MyDrive/Intelligent-Resume-screening-system-NLPproject/resume_model.pkl","rb"))
-vectorizer = pickle.load(open("/content/drive/MyDrive/Intelligent-Resume-screening-system-NLPproject/vectorizer.pkl","rb"))
+model = pickle.load(open("resume_model.pkl","rb"))
+vectorizer = pickle.load(open("vectorizer.pkl","rb"))
 
 # ==========================
 # Text Cleaning Function
