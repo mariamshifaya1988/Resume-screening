@@ -160,9 +160,7 @@ if st.button("Screen Resumes"):
             )
 
             st.markdown("---")
-
-        )
-
+        
     df=pd.DataFrame(results)
 
     st.dataframe(df)
