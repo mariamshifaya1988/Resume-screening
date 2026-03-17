@@ -78,8 +78,7 @@ def extract_phone(text):
 # -----------------------
 def extract_name(text):
 
-    lines = text.split("
-")
+    lines = text.split("\n")
 
     for line in lines[:5]:
 
