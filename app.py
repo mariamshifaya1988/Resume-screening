@@ -2,6 +2,7 @@ import streamlit as st
 import pickle
 import re
 import nltk
+import pandas as pd
 from nltk.corpus import stopwords
 
 import docx
@@ -21,7 +22,7 @@ model = pickle.load(open("resume_model.pkl", "rb"))
 vectorizer = pickle.load(open("vectorizer.pkl", "rb"))
 
 # -----------------------
-# Roles (UPDATED)
+# Roles
 # -----------------------
 ROLES = [
     "AI Engineer","Business Analyst","Cloud Engineer","Data Analyst",
@@ -31,7 +32,7 @@ ROLES = [
 ]
 
 # -----------------------
-# Skills (CLEANED + FIXED)
+# Skills
 # -----------------------
 SKILLS = [
     "nlp","deep learning","python","tensorflow","computer vision","sql",
@@ -85,7 +86,7 @@ def clean_text(text):
     return " ".join(words)
 
 # -----------------------
-# Role Prediction (Hybrid)
+# Role Prediction
 # -----------------------
 def predict_role(text):
 
@@ -120,7 +121,7 @@ def extract_phone(text):
     return "Not Found"
 
 # -----------------------
-# Name (FIXED)
+# Name
 # -----------------------
 def extract_name(text):
 
@@ -149,7 +150,7 @@ def extract_name(text):
     return "Not Found"
 
 # -----------------------
-# Experience (FIXED)
+# Experience
 # -----------------------
 def extract_experience(text):
 
@@ -227,7 +228,7 @@ if st.button("Screen Resumes"):
                 })
 
 # -----------------------
-# Results
+# Results (TABLE FORMAT)
 # -----------------------
 if len(st.session_state.shortlisted) == 0:
 
@@ -237,13 +238,19 @@ else:
 
     st.success(f"{len(st.session_state.shortlisted)} candidates shortlisted")
 
-    for i, c in enumerate(st.session_state.shortlisted):
+    df = pd.DataFrame(st.session_state.shortlisted)
 
-        st.write(c)
+    df_display = df.drop(columns=["File Data"])
+
+    st.dataframe(df_display, use_container_width=True)
+
+    st.markdown("### Download Resumes")
+
+    for i, row in df.iterrows():
 
         st.download_button(
-            "Download Resume",
-            data=c["File Data"],
-            file_name=c["File Name"],
+            label=f"Download {row['Name']}",
+            data=row["File Data"],
+            file_name=row["File Name"],
             key=i
         )
