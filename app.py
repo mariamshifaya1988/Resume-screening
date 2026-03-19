@@ -154,10 +154,19 @@ def extract_name(text):
 # -----------------------
 def extract_experience(text):
 
-    matches = re.findall(r'(\d+)\s*(year|years|yr|yrs)', text.lower())
+    text = text.lower().replace("\n", " ")
+
+    # Match formats like:
+    # 3 years, 3 year, 3+ years, 3 yrs
+    matches = re.findall(r'(\d+)\+?\s*(year|years|yr|yrs)', text)
 
     if matches:
         return max([int(m[0]) for m in matches])
+
+    # Fallback: "experience: 3"
+    match = re.search(r'experience[:\s]+(\d+)', text)
+    if match:
+        return int(match.group(1))
 
     return 0
 
@@ -228,7 +237,7 @@ if st.button("Screen Resumes"):
                 })
 
 # -----------------------
-# Results (TABLE + INLINE DOWNLOAD)
+# Results (CUSTOM TABLE)
 # -----------------------
 if len(st.session_state.shortlisted) == 0:
 
@@ -238,34 +247,35 @@ else:
 
     st.success(f"{len(st.session_state.shortlisted)} candidates shortlisted")
 
-    df = pd.DataFrame(st.session_state.shortlisted)
+    # Header
+    h1, h2, h3, h4, h5, h6, h7 = st.columns(7)
 
-    # Display table (without file data)
-    df_display = df.drop(columns=["File Data"])
-    st.dataframe(df_display, use_container_width=True)
-
-    st.markdown("### Download Resumes")
-
-    # Create table-like layout with download button in last column
-    header_cols = st.columns(len(df_display.columns) + 1)
-
-    for i, col in enumerate(df_display.columns):
-        header_cols[i].write(f"**{col}**")
-    header_cols[-1].write("**Download**")
+    h1.write("**Name**")
+    h2.write("**Role**")
+    h3.write("**Skills**")
+    h4.write("**Experience**")
+    h5.write("**Email**")
+    h6.write("**Phone**")
+    h7.write("**Resume**")
 
     st.markdown("---")
 
-    for i, row in df.iterrows():
+    # Rows
+    for i, candidate in enumerate(st.session_state.shortlisted):
 
-        cols = st.columns(len(df_display.columns) + 1)
+        c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
 
-        for j, col in enumerate(df_display.columns):
-            cols[j].write(row[col])
+        c1.write(candidate["Name"])
+        c2.write(candidate["Role"])
+        c3.write(candidate["Skills"])
+        c4.write(candidate["Experience"])
+        c5.write(candidate["Email"])
+        c6.write(candidate["Phone"])
 
-        cols[-1].download_button(
+        c7.download_button(
             label="Download",
-            data=row["File Data"],
-            file_name=row["File Name"],
+            data=candidate["File Data"],
+            file_name=candidate["File Name"],
             key=f"download_{i}"
         )
 
