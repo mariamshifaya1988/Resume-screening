@@ -228,7 +228,7 @@ if st.button("Screen Resumes"):
                 })
 
 # -----------------------
-# Results (TABLE FORMAT)
+# Results (TABLE + INLINE DOWNLOAD)
 # -----------------------
 if len(st.session_state.shortlisted) == 0:
 
@@ -240,17 +240,33 @@ else:
 
     df = pd.DataFrame(st.session_state.shortlisted)
 
+    # Display table (without file data)
     df_display = df.drop(columns=["File Data"])
-
     st.dataframe(df_display, use_container_width=True)
 
     st.markdown("### Download Resumes")
 
+    # Create table-like layout with download button in last column
+    header_cols = st.columns(len(df_display.columns) + 1)
+
+    for i, col in enumerate(df_display.columns):
+        header_cols[i].write(f"**{col}**")
+    header_cols[-1].write("**Download**")
+
+    st.markdown("---")
+
     for i, row in df.iterrows():
 
-        st.download_button(
-            label=f"Download {row['Name']}",
+        cols = st.columns(len(df_display.columns) + 1)
+
+        for j, col in enumerate(df_display.columns):
+            cols[j].write(row[col])
+
+        cols[-1].download_button(
+            label="Download",
             data=row["File Data"],
             file_name=row["File Name"],
-            key=i
+            key=f"download_{i}"
         )
+
+        st.markdown("---")
