@@ -1,11 +1,9 @@
 import streamlit as st
 import pickle
-import pandas as pd
 import re
 import nltk
 from nltk.corpus import stopwords
 
-# File handling
 import docx
 import pdfplumber
 
@@ -19,9 +17,36 @@ if "shortlisted" not in st.session_state:
 
 stop_words = set(stopwords.words("english"))
 
-# Load ML model
 model = pickle.load(open("resume_model.pkl", "rb"))
 vectorizer = pickle.load(open("vectorizer.pkl", "rb"))
+
+# -----------------------
+# Roles (UPDATED)
+# -----------------------
+ROLES = [
+    "AI Engineer","Business Analyst","Cloud Engineer","Data Analyst",
+    "Data Engineer","Data Scientist","DevOps Engineer","Full Stack Developer",
+    "HR Manager","Machine Learning Engineer","Product Manager","Python Developer",
+    "QA Engineer","Sales Manager","Software Engineer"
+]
+
+# -----------------------
+# Skills (CLEANED + FIXED)
+# -----------------------
+SKILLS = [
+    "nlp","deep learning","python","tensorflow","computer vision","sql",
+    "business analysis","excel","requirement gathering","power bi",
+    "product strategy","roadmap","agile","stakeholder management","aws",
+    "kubernetes","linux","ci cd","docker","terraform","machine learning",
+    "scikit-learn","pandas","numpy","cloud architecture","azure","tableau",
+    "data visualization","data pipelines","spark","etl","hadoop","html",
+    "javascript","react","css","mongodb","node js","talent management",
+    "hr policies","recruitment","employee engagement","model deployment",
+    "pytorch","mlops","postgresql","flask","django","rest api","testing",
+    "selenium","automation testing","test case","sales strategy",
+    "client management","crm","lead generation","system design","java",
+    "algorithm","data structure"
+]
 
 # -----------------------
 # File Reading
@@ -33,7 +58,7 @@ def read_file(file):
 
     elif file.name.endswith(".docx"):
         doc = docx.Document(file)
-        return "\n".join([para.text for para in doc.paragraphs])
+        return "\n".join([p.text for p in doc.paragraphs])
 
     elif file.name.endswith(".pdf"):
         text = ""
@@ -46,7 +71,7 @@ def read_file(file):
     return ""
 
 # -----------------------
-# Text Cleaning
+# Clean Text
 # -----------------------
 def clean_text(text):
 
@@ -60,74 +85,75 @@ def clean_text(text):
     return " ".join(words)
 
 # -----------------------
-# Hybrid Role Prediction
+# Role Prediction (Hybrid)
 # -----------------------
 def predict_role(text):
 
     text_lower = text.lower()
 
-    # Rule-based priority
-    if "machine learning engineer" in text_lower:
-        return "Machine Learning Engineer"
-    elif "data scientist" in text_lower:
-        return "Data Scientist"
-    elif "data analyst" in text_lower:
-        return "Data Analyst"
-    elif "software engineer" in text_lower:
-        return "Software Engineer"
+    for r in ROLES:
+        if r.lower() in text_lower:
+            return r
 
-    # ML Prediction
     vec = vectorizer.transform([clean_text(text)])
-    role = model.predict(vec)[0]
-
-    # Correction rule
-    if role == "Data Analyst" and "machine learning" in text_lower:
-        return "Machine Learning Engineer"
-
-    return role
+    return model.predict(vec)[0]
 
 # -----------------------
 # Email
 # -----------------------
 def extract_email(text):
 
-    email = re.findall(r"\S+@\S+", text)
-    return email[0] if email else "Not Found"
+    match = re.findall(r"\S+@\S+", text)
+    return match[0] if match else "Not Found"
 
 # -----------------------
 # Phone
 # -----------------------
 def extract_phone(text):
 
-    phones = re.findall(r'\+?\d[\d\s\-]{8,15}\d', text)
+    match = re.findall(r'\+?\d[\d\s\-]{8,15}\d', text)
 
-    if phones:
-        phone = re.sub(r"[^\d]", "", phones[0])
+    if match:
+        phone = re.sub(r"[^\d]", "", match[0])
         return phone[-10:]
 
     return "Not Found"
 
 # -----------------------
-# Name
+# Name (FIXED)
 # -----------------------
 def extract_name(text):
 
     lines = text.split("\n")
 
-    for line in lines[:10]:
+    for line in lines[:15]:
+
         line = line.strip()
 
-        if len(line.split()) <= 4 and line.replace(" ", "").isalpha():
+        if "name" in line.lower():
+            parts = line.split(":")
+            if len(parts) > 1:
+                name = parts[1].strip()
+                if len(name.split()) >= 2:
+                    return name
+
+        if line.lower() in ["resume","cv","curriculum vitae"]:
+            continue
+
+        if any(word in line.lower() for word in ["email","phone","summary","experience"]):
+            continue
+
+        if 2 <= len(line.split()) <= 4 and line.replace(" ","").isalpha():
             return line
 
     return "Not Found"
 
 # -----------------------
-# Experience
+# Experience (FIXED)
 # -----------------------
 def extract_experience(text):
 
-    matches = re.findall(r'(\d+)\+?\s*(years|yrs)', text.lower())
+    matches = re.findall(r'(\d+)\s*(year|years|yr|yrs)', text.lower())
 
     if matches:
         return max([int(m[0]) for m in matches])
@@ -135,40 +161,32 @@ def extract_experience(text):
     return 0
 
 # -----------------------
-# Skills
+# Skills Extraction
 # -----------------------
 def extract_skills(text):
 
-    skills_list = [
-        "python","sql","machine learning","deep learning","java","power bi","tableau",
-        "excel","nlp","pandas","numpy","tensorflow","aws","docker","kubernetes",
-        "flask","django","pytorch","mlops"
-    ]
-
     text = text.lower()
-    return [skill for skill in skills_list if skill in text]
+    found = []
+
+    for skill in SKILLS:
+        if skill in text:
+            found.append(skill)
+
+    return found
 
 # -----------------------
 # UI
 # -----------------------
 st.title("AI Resume Screening System")
 
-role = st.selectbox("Select Required Role", [
-    "Data Scientist","Data Analyst","Software Engineer","Machine Learning Engineer",
-    "AI Engineer","Business Analyst","Cloud Engineer","Data Engineer",
-    "DevOps Engineer","Full Stack Developer","HR Manager","Product Manager",
-    "Python Developer","QA Engineer","Sales Manager"
-])
+role = st.selectbox("Select Role", ROLES)
 
-skills = st.multiselect("Required Skills", [
-    "python","sql","machine learning","deep learning","power bi","tableau",
-    "excel","aws","docker","kubernetes","flask","django"
-])
+skills = st.multiselect("Required Skills", SKILLS)
 
-experience = st.slider("Minimum Years of Experience", 0, 10)
+experience = st.slider("Minimum Experience", 0, 10)
 
 files = st.file_uploader(
-    "Upload resumes",
+    "Upload Resumes",
     type=["txt","pdf","docx"],
     accept_multiple_files=True
 )
@@ -189,18 +207,18 @@ if st.button("Screen Resumes"):
             name = extract_name(text)
             email = extract_email(text)
             phone = extract_phone(text)
-            predicted_role = predict_role(text)
-            candidate_skills = extract_skills(text)
+            role_pred = predict_role(text)
             exp = extract_experience(text)
+            skill_list = extract_skills(text)
 
-            skill_match = all(skill in candidate_skills for skill in skills)
+            skill_match = all(s in skill_list for s in skills)
 
-            if predicted_role == role and skill_match and exp >= experience:
+            if role_pred == role and skill_match and exp >= experience:
 
                 st.session_state.shortlisted.append({
                     "Name": name,
-                    "Role": predicted_role,
-                    "Skills": ", ".join(candidate_skills),
+                    "Role": role_pred,
+                    "Skills": ", ".join(skill_list),
                     "Experience": exp,
                     "Email": email,
                     "Phone": phone,
@@ -219,29 +237,13 @@ else:
 
     st.success(f"{len(st.session_state.shortlisted)} candidates shortlisted")
 
-    headers = st.columns(7)
-    for col, h in zip(headers, ["Name","Role","Skills","Exp","Email","Phone","Resume"]):
-        col.write(h)
+    for i, c in enumerate(st.session_state.shortlisted):
 
-    st.markdown("---")
+        st.write(c)
 
-    for i, candidate in enumerate(st.session_state.shortlisted):
-
-        cols = st.columns(7)
-
-        cols[0].write(candidate["Name"])
-        cols[1].write(candidate["Role"])
-        cols[2].write(candidate["Skills"])
-        cols[3].write(candidate["Experience"])
-        cols[4].write(candidate["Email"])
-        cols[5].write(candidate["Phone"])
-
-        cols[6].download_button(
-            label="Download",
-            data=candidate["File Data"],
-            file_name=candidate["File Name"],
-            mime="application/octet-stream",
-            key=f"download_{i}"
+        st.download_button(
+            "Download Resume",
+            data=c["File Data"],
+            file_name=c["File Name"],
+            key=i
         )
-
-        st.markdown("---")
