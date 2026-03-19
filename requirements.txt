@@ -1,8 +1,7 @@
 
-python-docx
-PyPDF2
-pdfplumber
 streamlit
 pandas
 nltk
 scikit-learn
+python-docx
+pdfplumber
