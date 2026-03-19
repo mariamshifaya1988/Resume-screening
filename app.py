@@ -33,8 +33,7 @@ def read_file(file):
 
     elif file.name.endswith(".docx"):
         doc = docx.Document(file)
-        return "
-".join([para.text for para in doc.paragraphs])
+        return "\n".join([para.text for para in doc.paragraphs])
 
     elif file.name.endswith(".pdf"):
         reader = PdfReader(file)
